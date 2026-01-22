@@ -54,7 +54,7 @@ if uploaded_file:
         
         if st.button("機種リストをクリア"):
             st.session_state.targets = []
-            rerun()
+            st.rerun()
 
         # --- 4. 画像生成 ---
         if st.button("🚀 レポート画像を生成する"):

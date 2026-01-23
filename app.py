@@ -7,24 +7,25 @@ import io
 import urllib.request
 import os
 
+# --- 修正ポイント：この命令を一番最初に持ってくる ---
+st.set_page_config(page_title="スロット優秀台レポート", layout="centered")
+
 # --- 日本語フォントのセットアップ ---
 @st.cache_data
 def load_font():
-    # Noto Sans JPフォントをダウンロード
-    font_url = "https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf"
-    # より確実な日本語フォント（IPAexゴシックなど）を推奨しますが、まずは標準的なものを試行
-    font_path = "NotoSansJP-Regular.ttf"
+    font_path = "NotoSansCJKjp-Regular.otf"
     if not os.path.exists(font_path):
-        urllib.request.urlretrieve("https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf", font_path)
+        # より日本語対応が確実なNoto Sans CJK JPをダウンロード
+        url = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf"
+        urllib.request.urlretrieve(url, font_path)
     return font_path
 
 font_p = load_font()
 prop = fm.FontProperties(fname=font_p)
 
-# Streamlitの基本設定
-st.set_page_config(page_title="スロット優秀台レポート", layout="centered")
 st.title("🎰 優秀台レポート作成")
 
+# --- 以下、前回のロジックと同じ ---
 uploaded_file = st.file_uploader("CSVファイルをアップロードしてください", type=['csv'])
 
 if uploaded_file:
@@ -86,7 +87,6 @@ if uploaded_file:
                     master_rows.append([""] * 7)
 
             if len(master_rows) > 1:
-                # --- テーブル描画 ---
                 fig, ax = plt.subplots(figsize=(16, len(master_rows) * 0.8))
                 ax.axis('off')
                 table = ax.table(cellText=master_rows, colWidths=[0.1, 0.2, 0.15, 0.1, 0.1, 0.1, 0.25], loc='center', cellLoc='center')
@@ -94,7 +94,7 @@ if uploaded_file:
                 table.scale(1.0, 3.8)
                 
                 for (r, c), cell in table.get_celld().items():
-                    cell.get_text().set_fontproperties(prop) # 日本語適用
+                    cell.get_text().set_fontproperties(prop)
                     if r == 0 or master_rows[r] == [""] * 7:
                         cell.set_height(0.01); cell.visible_edges = ''
                     elif r in h_idx:
@@ -104,7 +104,7 @@ if uploaded_file:
                             txt.set_text(f"{m_names[h_idx.index(r)]} 優秀台")
                             txt.set_fontsize(28); txt.set_weight('bold'); txt.set_color('black')
                         else: cell.get_text().set_text("")
-                    elif r-1 in h_idx: # ヘッダー
+                    elif r-1 in h_idx:
                         cell.set_facecolor('#444444'); cell.get_text().set_color('white'); cell.get_text().set_fontsize(20)
                     else:
                         cell.set_facecolor('#F2F2F2' if r % 2 == 0 else 'white'); cell.get_text().set_fontsize(18)
@@ -113,21 +113,18 @@ if uploaded_file:
                 plt.savefig(buf, format='png', bbox_inches='tight', dpi=150)
                 t_img = Image.open(buf)
 
-                # --- 看板作成 ---
                 banner_h = 150
                 banner_img = Image.new('RGB', (t_img.width, banner_h), color='#FF0000')
                 draw = ImageDraw.Draw(banner_img)
                 try:
-                    b_font = ImageFont.truetype(font_p, 90) # サイズ90指定
+                    b_font = ImageFont.truetype(font_p, 90)
                 except:
                     b_font = ImageFont.load_default()
                 
-                # 文字を中央に
                 bbox = draw.textbbox((0, 0), banner_title, font=b_font)
                 tw, th = bbox[2]-bbox[0], bbox[3]-bbox[1]
                 draw.text(((t_img.width - tw)//2, (banner_h - th)//2 - 10), banner_title, fill="white", font=b_font)
 
-                # --- 結合 ---
                 final_img = Image.new('RGB', (t_img.width, banner_h + t_img.height), color='white')
                 final_img.paste(banner_img, (0, 0))
                 final_img.paste(t_img, (0, banner_h))
